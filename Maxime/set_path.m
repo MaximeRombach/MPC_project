@@ -1,1 +1,1 @@
-addpath('./src','./Part1','./Part2')
+addpath('./src','./Part1','./Part2','./Part3')
