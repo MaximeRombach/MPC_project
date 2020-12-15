@@ -34,8 +34,72 @@ classdef MPC_Control_x < MPC_Control
       %       the DISCRETE-TIME MODEL of your system
 
       % WRITE THE CONSTRAINTS AND OBJECTIVE HERE
+      Q = 10*eye(n);
+      R = 1;
+      
+      A = mpc.A;
+      B = mpc.B;
+      
+      % Conditions on state for x
+      F = [0,0,1,0; 
+           0,0,-1,0];
+
+      f = [0.035; 0.035];
+      
+      % Conditions on inputs for M_beta
+      M = [1; -1]; m = [0.3;0.3];
+      
+      %%%% Conventional way %%%%
+      [K,Qf,~] = dlqr(A,B,Q,R);
+      K = -K;
+      
+      Xf_start = polytope([F;M*K],[f;m]);
+      X = Xf_start;
+      k = 1;
+      Acl = A + B*K;
+      while 1
+          pre_O = X;
+          [T,t] = double(X);
+          X = polytope(T*Acl, t);
+          if X == pre_O
+              Xf = X;
+              fprintf("Finished at iteration n°%d\n", k)
+              break;
+          end
+          fprintf("Iteration n°%d \n", k)
+          k = k + 1;
+
+      end
+      [Ff, ff] = double(Xf);
+      
+      %%%% System with MPT (attempt) %%%% 
+      
+%       sysTemp = LTISystem('A',A,'B',B);
+%       sysTemp.x.max = [inf,inf,0.035,inf]; sysTemp.x.min = -0.035;
+%       sysTemp.u.max = 0.3; sysTemp.u.min = -0.3;
+%       sysTemp.x.penalty = QuadFunction(Q);
+%       sysTemp.u.penalty = QuadFunction(R);
+% 
+%       K = sysTemp.LQRGain;
+%       Qf = sysTemp.LQRPenalty.weight;
+%       Xf = sysTemp.LQRSet;
+%       [Ff, ff] = double(Xf);
+      
+      % Define constraints
       con = [];
       obj = 0;
+      
+      con = [con, x(:,2) == A*x(:,1) + B*u(:,1)];
+      con = [con M*u(:,1) <= m];
+      obj = u(:,1)'*R*u(:,1);
+      for i = 2:N-1
+          con = [con, x(:,i+1) == A*x(:,i) + B*u(:,i)]; % System dynamics
+          con = [con, F*x(:,i) <= f]; % State constraints
+          con = [con, + M*u(:,i) <= m]; 
+          obj = obj + x(:,i)'*Q*x(:,i) + u(:,i)'*R*u(:,i); % Input constraints
+      end
+        con = [con, (Ff*x(:,N) <= ff)]; % Terminal constraint
+        obj = obj + x(:,N)'*Qf*x(:,N);% Terminal weight
 
       
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 

@@ -20,12 +20,16 @@ classdef MPC_Control_yaw < MPC_Control
       us = sdpvar(m, 1);
       
       % SET THE HORIZON HERE
-      N = ...
+      N = 10;
       
       % Predicted state and input trajectories
       x = sdpvar(n, N);
       u = sdpvar(m, N-1);
       
+      A = mpc.A;
+      B = mpc.B;
+      Q = 10*eye(n);
+      R = 1;
 
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 
@@ -34,8 +38,30 @@ classdef MPC_Control_yaw < MPC_Control
       %       the DISCRETE-TIME MODEL of your system
 
       % WRITE THE CONSTRAINTS AND OBJECTIVE HERE
+            
+      sysTemp = LTISystem('A',A,'B',B);
+      sysTemp.u.max = 0.2; sysTemp.u.min = -0.2;
+      sysTemp.x.penalty = QuadFunction(Q);
+      sysTemp.u.penalty = QuadFunction(R);
+
+      K = sysTemp.LQRGain;
+      Qf = sysTemp.LQRPenalty.weight;
+      Xf = sysTemp.LQRSet
+      [ff] = double(Xf);
+      
       con = [];
-      obj = 0;
+      obj = 0;      
+      con = [con, x(:,2) == A*x(:,1) + B*u(:,1)];
+      con = [con M*u(:,1) <= m];
+      obj = u(:,1)'*R*u(:,1);
+      for i = 2:N-1
+          con = [con, x(:,i+1) == A*x(:,i) + B*u(:,i)]; % System dynamics
+          con = [con, + M*u(:,i) <= m]; % Input constraints
+          obj = obj + x(:,i)'*Q*x(:,i) + u(:,i)'*R*u(:,i); 
+      end
+        con = [con, (Ff*x(:,N) <= ff)]; % Terminal constraint
+        obj = obj + x(:,N)'*Qf*x(:,N);% Terminal weight
+      
 
       
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 
