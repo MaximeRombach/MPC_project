@@ -34,7 +34,7 @@ classdef MPC_Control_z < MPC_Control
       d_est = sdpvar(1);
 
       % SET THE HORIZON HERE
-      N = ...
+      N = 15;
       
       % Predicted state and input trajectories
       x = sdpvar(n, N);
@@ -48,8 +48,60 @@ classdef MPC_Control_z < MPC_Control
       %       the DISCRETE-TIME MODEL of your system
 
       % SET THE PROBLEM CONSTRAINTS con AND THE OBJECTIVE obj HERE
+      Q = 1*eye(n);
+      R = 7;
+      
+      A = mpc.A;
+      B = mpc.B;
+      % Conditions on state for x
+      F = [];
+
+      f = [];
+      
+      % Conditions on inputs for M_beta
+      M = [-1; 1]; m = [0.2;0.3];
+      
+      %%%% Conventional way %%%%
+      [K,Qf,~] = dlqr(A,B,Q,R);
+      K = -K;
+ 
+      Xf = polytope([F;M*K],[f;m]);
+      k = 1;
+      Acl = A + B*K;
+      fprintf("Computing max invariant set for Z\n")
+      while 1
+          prev_O = Xf;
+          [T,t] = double(Xf);
+          pre_O = polytope(T*Acl, t); % Compute pre set 
+          Xf = intersect(pre_O,Xf); % Intersect pre set and set
+          if prev_O == Xf
+              fprintf("Finished at iteration n°%d\n", k)
+              break;
+          end
+          fprintf("Iteration n°%d \n", k)
+          k = k + 1;
+
+      end
+      
+      [Ff, ff] = double(Xf);
+      
       con = [];
-      obj = 0;
+      obj = 0;      
+      con = [con, x(:,2) == A*x(:,1) + B*u(:,1)];
+      con = [con M*u(:,1) <= m];
+      obj = u(:,1)'*R*u(:,1);
+      for i = 2:N-1
+          con = [con, x(:,i+1) == A*x(:,i) + B*u(:,i)]; % System dynamics
+          con = [con, + M*u(:,i) <= m]; % Input constraints
+          obj = obj + x(:,i)'*Q*x(:,i) + u(:,i)'*R*u(:,i); 
+      end
+        con = [con, (Ff*x(:,N) <= ff)]; % Terminal constraint
+        obj = obj + x(:,N)'*Qf*x(:,N);% Terminal weight
+      
+      figure
+      Xf.projection(1:2).plot();
+      xlabel("z velocity"); ylabel("z")
+      sgtitle('MPC Control z')
 
       
       

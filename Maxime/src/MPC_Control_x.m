@@ -20,7 +20,7 @@ classdef MPC_Control_x < MPC_Control
       us = sdpvar(m, 1);
       
       % SET THE HORIZON HERE
-      N = 10;
+      N = 15;
       
       % Predicted state and input trajectories
       x = sdpvar(n, N);
@@ -40,9 +40,10 @@ classdef MPC_Control_x < MPC_Control
       A = mpc.A;
       B = mpc.B;
       
+      
       % Conditions on state for x
-      F = [0,0,1,0; 
-           0,0,-1,0];
+      F = [0,1,0,0; 
+           0,-1,0,0];
 
       f = [0.035; 0.035];
       
@@ -53,16 +54,16 @@ classdef MPC_Control_x < MPC_Control
       [K,Qf,~] = dlqr(A,B,Q,R);
       K = -K;
       
-      Xf_start = polytope([F;M*K],[f;m]);
-      X = Xf_start;
+      Xf = polytope([F;M*K],[f;m]);
       k = 1;
       Acl = A + B*K;
+      fprintf("Computing max invariant set for X\n")
       while 1
-          pre_O = X;
-          [T,t] = double(X);
-          X = polytope(T*Acl, t);
-          if X == pre_O
-              Xf = X;
+          prev_O = Xf;
+          [T,t] = double(Xf);
+          pre_O = polytope(T*Acl, t); % Compute pre set 
+          Xf = intersect(pre_O,Xf); % Intersect pre set and set
+          if prev_O == Xf
               fprintf("Finished at iteration n°%d\n", k)
               break;
           end
@@ -70,20 +71,9 @@ classdef MPC_Control_x < MPC_Control
           k = k + 1;
 
       end
+      
       [Ff, ff] = double(Xf);
       
-      %%%% System with MPT (attempt) %%%% 
-      
-%       sysTemp = LTISystem('A',A,'B',B);
-%       sysTemp.x.max = [inf,inf,0.035,inf]; sysTemp.x.min = -0.035;
-%       sysTemp.u.max = 0.3; sysTemp.u.min = -0.3;
-%       sysTemp.x.penalty = QuadFunction(Q);
-%       sysTemp.u.penalty = QuadFunction(R);
-% 
-%       K = sysTemp.LQRGain;
-%       Qf = sysTemp.LQRPenalty.weight;
-%       Xf = sysTemp.LQRSet;
-%       [Ff, ff] = double(Xf);
       
       % Define constraints
       con = [];
@@ -100,6 +90,25 @@ classdef MPC_Control_x < MPC_Control
       end
         con = [con, (Ff*x(:,N) <= ff)]; % Terminal constraint
         obj = obj + x(:,N)'*Qf*x(:,N);% Terminal weight
+        
+      % Plot terminal invariant sets
+      options = struct('alpha', 0.2, 'edgecolor', 'k');
+      options2 = struct('color', [0 1 0], 'alpha', 0.2, 'edgecolor', 'k');
+      figure
+      sgtitle('MPC Control x')
+      subplot(2,2,1)
+      
+      Xf.projection(1:2).plot();
+      xlabel("Pitch velocity"); ylabel('Pitch');
+      
+      subplot(2,2,2)
+      Xf.projection(2:3).plot();
+      xlabel("Pitch"); ylabel("x velocity")
+      
+      subplot(2,2,3)
+      Xf.projection(3:4).plot();
+      xlabel("x velocity"); ylabel("x")
+      
 
       
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 
@@ -108,7 +117,11 @@ classdef MPC_Control_x < MPC_Control
       
       ctrl_opt = optimizer(con, obj, sdpsettings('solver','gurobi'), ...
         {x(:,1), xs, us}, u(:,1));
+    
+    
     end
+    
+    
     
     
     % Design a YALMIP optimizer object that takes a position reference

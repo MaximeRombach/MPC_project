@@ -20,7 +20,7 @@ classdef MPC_Control_yaw < MPC_Control
       us = sdpvar(m, 1);
       
       % SET THE HORIZON HERE
-      N = 10;
+      N = 15;
       
       % Predicted state and input trajectories
       x = sdpvar(n, N);
@@ -39,15 +39,38 @@ classdef MPC_Control_yaw < MPC_Control
 
       % WRITE THE CONSTRAINTS AND OBJECTIVE HERE
             
-      sysTemp = LTISystem('A',A,'B',B);
-      sysTemp.u.max = 0.2; sysTemp.u.min = -0.2;
-      sysTemp.x.penalty = QuadFunction(Q);
-      sysTemp.u.penalty = QuadFunction(R);
+      % Conditions on state for x
+      F = [];
 
-      K = sysTemp.LQRGain;
-      Qf = sysTemp.LQRPenalty.weight;
-      Xf = sysTemp.LQRSet
-      [ff] = double(Xf);
+      f = [];
+      
+      % Conditions on inputs for M_beta
+      M = [1; -1]; m = [0.2;0.2];
+      
+      %%%% Conventional way %%%%
+      [K,Qf,~] = dlqr(A,B,Q,R);
+      K = -K;
+      
+    
+      Xf = polytope([F;M*K],[f;m]);
+      k = 1;
+      Acl = A + B*K;
+      fprintf("Computing max invariant set for Yaw\n")
+      while 1
+          prev_O = Xf;
+          [T,t] = double(Xf);
+          pre_O = polytope(T*Acl, t); % Compute pre set 
+          Xf = intersect(pre_O,Xf); % Intersect pre set and set
+          if prev_O == Xf
+              fprintf("Finished at iteration n°%d\n", k)
+              break;
+          end
+          fprintf("Iteration n°%d \n", k)
+          k = k + 1;
+
+      end
+      
+      [Ff, ff] = double(Xf);
       
       con = [];
       obj = 0;      
@@ -62,6 +85,10 @@ classdef MPC_Control_yaw < MPC_Control
         con = [con, (Ff*x(:,N) <= ff)]; % Terminal constraint
         obj = obj + x(:,N)'*Qf*x(:,N);% Terminal weight
       
+      figure
+      Xf.projection(1:2).plot();
+      xlabel("Yaw velocity"); ylabel("Yaw")
+      sgtitle('MPC Control yaw')
 
       
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 
