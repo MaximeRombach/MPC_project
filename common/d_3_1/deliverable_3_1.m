@@ -1,5 +1,6 @@
 clc;
 clear all;
+close all;
 %model setup
 quad = Quad();
 [xs,us] = quad.trim();
@@ -8,12 +9,17 @@ sys_transformed = sys * inv(quad.T);
 [sys_x, sys_y, sys_z, sys_yaw] = quad.decompose(sys, xs, us);
 Ts=0.2;
 %controller construction
+save = false;
 mpc_x = MPC_Control_x(sys_x, Ts);
+save_plot('del_31_x', save)
 mpc_y = MPC_Control_y(sys_y, Ts);
+save_plot('del_31_y', save)
 mpc_z = MPC_Control_z(sys_z, Ts);
+save_plot('del_31_z', save)
 mpc_yaw = MPC_Control_yaw(sys_yaw, Ts);
+save_plot('del_31_yaw', save)
 ctrl_n_ref= quad.merge_controllers_non_ref(mpc_x, mpc_y, mpc_z, mpc_yaw);
-%set initial states
+%% set initial states
 ind = quad.ind;
 I_x = [ind.omega(2),ind.theta(2),ind.vel(1),ind.pos(1)];
 I_y = [ind.omega(1),ind.theta(1),ind.vel(2),ind.pos(2)];
