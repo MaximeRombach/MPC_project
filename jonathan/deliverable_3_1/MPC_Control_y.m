@@ -1,4 +1,4 @@
-classdef MPC_Control_x < MPC_Control
+classdef MPC_Control_y < MPC_Control
   
   methods
     % Design a YALMIP optimizer object that takes a steady-state state
@@ -20,7 +20,7 @@ classdef MPC_Control_x < MPC_Control
       us = sdpvar(m, 1);
       
       % SET THE HORIZON HERE
-      N = 15;
+      N = 10;
       
       % Predicted state and input trajectories
       x = sdpvar(n, N);
@@ -36,69 +36,74 @@ classdef MPC_Control_x < MPC_Control
       % WRITE THE CONSTRAINTS AND OBJECTIVE HERE
       con = [];
       obj = 0;
-      %extract system matrics
-      A=mpc.A;
-      B=mpc.B;
-      Q=diag([1, 1, 1 , 1]);%eye(n);
-      R=9;
-      Cu=[1;-1];
-      cu=[0.3;0.3];
-      Fx=[0,1,0,0;0,-1,0,0];
-      fx=[0.035;0.035];
-      %compute LQR controller
-      [K,Qf,~]=dlqr(A,B,Q,R);
-      K=-K;
-      %compute maximal invariant set
-      Xf=polytope([Fx;Cu*K],[fx;cu]);
-      Upd=A+B*K;
+      
+      A = mpc.A; B = mpc.B;
+      
+      Q = diag([1,1,1,1]);%to be tuned
+      R = 8;%to be tuned when using 10 the terminal set projected on 1:2 disappears!!!
+      
+      % State Constraints
+      % x in X = { x | Fx <= f }
+      F = [0,1,0,0; 0,-1,0,0]; f = 0.035*[1;1];
+      
+      % Input Constraints
+      % u in U = { u | Mu <= m }
+      M = [1;-1]; m = 0.3*[1;1];
+      
+      % Compute the unconstrained LQR controller
+      [K,Qf,~] = dlqr(A,B,Q,R);
+      K=-K; % Matlab inverts the K matrix
+      
+      % Compute the terminal set (maximum invariant set under local LQR
+      % controller)
+      Xf = polytope([F;M*K],[f;m]);
+      Acl = [A+B*K];
       while 1
-          prevXf=Xf;
-          [W,V]=double(Xf);
-          pXf=polytope(W*Upd,V);
-          Xf=intersect(Xf,pXf);
-          if prevXf==Xf
+          prevXf = Xf;
+          [T,t]= double(Xf);
+          preXf = polytope(T*Acl,t);
+          Xf = intersect(Xf, preXf);
+          if isequal(prevXf, Xf)
               break
           end
       end
-      [FW,FV]=double(Xf);
-      con=[con,x(:,2)==A*x(:,1)+B*u(:,1)];
-      con=[con,Cu*u(:,1)<=cu];
-      obj=u(:,1)'*R*u(:,1);
-      for i=2:1:N-1
-          con=[con, x(:,i+1)==A*x(:,i)+B*u(:,i)];
-          con=[con,Fx*x(:,i)<=fx];
-          con=[con,Cu*u(:,i)<=cu];
-          obj=obj+(x(:,i))'*Q*(x(:,i))+(u(:,i)')*R*(u(:,i));
+      [Ff, ff] = double(Xf);
+      
+      % Plot of the terminal set
+      figure();
+      subplot(1,3,1);
+      Xf.projection(1:2).plot(); title('Terminal set projected on states 1 & 2');
+      xlabel('roll velocity [rad/s]'); ylabel('roll [rad]');
+      subplot(1,3,2);
+      Xf.projection(2:3).plot(); title('Terminal set projected on states 2 & 3');
+      xlabel('roll [rad]'); ylabel('y velocity [m/s]');
+      subplot(1,3,3);
+      Xf.projection(3:4).plot(); title('Terminal set projected on states 3 & 4');
+      xlabel('y velocity [m/s]'); ylabel('y position [m]');
+      
+      % Definition of the constraints and objective 
+      %(no condition on the initial state)
+      con = [con, x(:,2) == A*x(:,1) + B*u(:,1)];
+      con = [con, M*u(:,1) <= m];
+      obj = obj + u(:,1)'*R*u(:,1) ;
+      for i = 2:(N-1)
+          con = [con, x(:,i+1) == A*x(:,i) + B*u(:,i)];
+          con = [con, F*x(:,i) <= f];
+          con = [con, M*u(:,i) <= m];
+          obj = obj + x(:,i)'*Q*x(:,i) + u(:,i)'*R*u(:,i);
       end
-      con=[con,FW*x(:,N)<=FV];
-      obj=obj+(x(:,N))'*Qf*(x(:,N));
+      con = [con, x(:,N) == A*x(:,N-1) + B*u(:,N-1)];
+      con = [con, Ff*x(:,N) <= ff]; % terminal constraint 
+      obj = x(:,N)'*Qf*x(:,N); % terminal cost
+
+      
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       
       
       ctrl_opt = optimizer(con, obj, sdpsettings('solver','gurobi'), ...
         {x(:,1), xs, us}, u(:,1));
-         %plot projected maximal invariant sets of each state
-        figure;
-        subplot(1,3,1);
-        Xf.projection(1:2).plot();
-        xlabel('pitch velocity [rad/s]');
-        ylabel('pitch angle [rad]');
-        grid on;
-        subplot(1,3,2);
-        Xf.projection(2:3).plot();
-        xlabel('pitch angle [rad]');
-        ylabel('x velocity');
-        grid on;
-        subplot(1,3,3);
-        Xf.projection(3:4).plot();
-        xlabel('x velocity [m/s]');
-        ylabel('x position [m]');
-        sgtitle('Terminal set for the x system');
     end
-    
-   
-
     
     
     % Design a YALMIP optimizer object that takes a position reference
@@ -132,6 +137,7 @@ classdef MPC_Control_x < MPC_Control
       
       % Compute the steady-state target
       target_opt = optimizer(con, obj, sdpsettings('solver', 'gurobi'), ref, {xs, us});
+      
     end
   end
 end

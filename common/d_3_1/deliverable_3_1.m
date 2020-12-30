@@ -23,6 +23,7 @@ I_yaw = [ind.omega(3),ind.theta(3)];
 Tt = 8;
 nbSteps = ceil(Tt/Ts);
 x0 = zeros(12,1); 
+x0(I_yaw(2)) = pi/4;
 x0([I_x(4),I_y(4),I_z(2)]) = 2;
 
 v = zeros(4,nbSteps-1);

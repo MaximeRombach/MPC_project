@@ -50,51 +50,32 @@ classdef MPC_Control_z < MPC_Control
       % SET THE PROBLEM CONSTRAINTS con AND THE OBJECTIVE obj HERE
       con = [];
       obj = 0;
-      A=mpc.A;
-      B=mpc.B;
-      Q=1*eye(n);
-      R=100;
-      Cu=[1;-1];
-      cu=[0.3;0.2];
+      
+      A = mpc.A; B = mpc.B;
+      
+      Q = diag([1,1]);%to be tuned
+      R = 10;%to be tuned
+     
+      
+      % Input Constraints
+      % u in U = { u | Mu <= m }
+      M = [1;-1]; m = [0.3;0.2];
 
-      %compute LQR controller
-      [K,Qf,~]=dlqr(A,B,Q,R);
-      K=-K;
-      %compute maximal invariant set
-      Xf=polytope(Cu*K,cu);
-      Upd=A+B*K;
-      while 1
-          prevXf=Xf;
-          [W,V]=double(Xf);
-          pXf=polytope(W*Upd,V);
-          Xf=intersect(Xf,pXf);
-          if prevXf==Xf
-              break
-          end
-      end
-      [FW,FV]=double(Xf);
-      con=[con,x(:,2)==A*x(:,1)+B*u(:,1)];
-      con=[con,Cu*u(:,1)<=cu];
-      obj=u(:,1)'*R*u(:,1);
-      for i=2:1:N-1
-          con=[con, x(:,i+1)==A*x(:,i)+B*u(:,i)];
-          con=[con,Cu*u(:,i)<=cu];
-          obj=obj+(x(:,i))'*Q*(x(:,i))+(u(:,i)')*R*(u(:,i));
-      end
-      con=[con,FW*x(:,N)<=FV];
-      obj=obj+(x(:,N))'*Qf*(x(:,N));
-      % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 
-      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
       
-      
-      ctrl_opt = optimizer(con, obj, sdpsettings('solver','gurobi'), ...
-        {x(:,1), xs, us}, u(:,1));
-    
-        %plot projected maximal invariant sets of each state
-        figure;
-        Xf.plot();
-        xlabel('z velocity [m/s]');ylabel('z position [m]');grid on;
-        sgtitle('Terminal set for the z system');
+      % Definition of the constraints and objective 
+      %(no condition on the initial state)
+      con = [con, x(:,2) == A*x(:,1) + B*u(:,1)];
+      con = [con, M*u(:,1) <= m];
+      obj = obj + (u(:,1)-us)'*R*(u(:,1)-us) ;
+      for i = 2:(N-1)
+          con = [con, x(:,i+1) == A*x(:,i) + B*u(:,i)];
+          con = [con, M*u(:,i) <= m];
+          obj = obj + (x(:,i)-xs)'*Q*(x(:,i)-xs);
+          obj = obj + (u(:,i)-us)'*R*(u(:,i)-us);
+      end
+      con = [con, x(:,N) == A*x(:,N-1) + B*u(:,N-1)];
+      obj = obj + (x(:,N)-xs)'*Q*(x(:,N)-xs);
       
       
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 
@@ -135,6 +116,16 @@ classdef MPC_Control_z < MPC_Control
       con = [];
       obj = 0;
       
+      A = mpc.A; B = mpc.B; C = mpc.C;
+      
+      % Input Constraints
+      % u in U = { u | Mu <= m }
+      M = [1;-1]; m = [0.3;0.2];
+      
+      con = [con, A*xs + B*us == xs];% steady state
+      con = [con, M*us <= m];% input constraints
+      
+      obj = obj + (C*xs - ref)'*(C*xs - ref) + us'*us;
 
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

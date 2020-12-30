@@ -34,7 +34,7 @@ classdef MPC_Control_z < MPC_Control
       d_est = sdpvar(1);
 
       % SET THE HORIZON HERE
-      N = ...
+      N = 15;
       
       % Predicted state and input trajectories
       x = sdpvar(n, N);
@@ -50,6 +50,58 @@ classdef MPC_Control_z < MPC_Control
       % SET THE PROBLEM CONSTRAINTS con AND THE OBJECTIVE obj HERE
       con = [];
       obj = 0;
+      
+      A = mpc.A;
+      B = mpc.B;
+      
+      Q = diag([1,1]);%to be tuned
+      R = 10;%to be tuned
+      
+      % State Constraints
+      % x in X = { x | Fx <= f } No constraints on the state
+      
+      % Input Constraints
+      % u in U = { u | Mu <= m }
+      M = [1;-1]; m = [0.3;0.2];
+      
+      % Compute the unconstrained LQR controller
+      [K,Qf,~] = dlqr(A,B,Q,R);
+      K=-K; % Matlab inverts the K matrix
+      
+      % Compute the terminal set (maximum invariant set under local LQR
+      % controller)
+      Xf = polytope([M*K],[m]);
+      Acl = [A+B*K];
+      while 1
+          prevXf = Xf;
+          [T,t]= double(Xf);
+          preXf = polytope(T*Acl,t);
+          Xf = intersect(Xf, preXf);
+          if isequal(prevXf, Xf)
+              break
+          end
+      end
+      [Ff, ff] = double(Xf);
+      
+      % Plot of the terminal set
+      figure();
+      Xf.projection(1:2).plot(); title('Terminal set projected');
+      xlabel('Z velocity [m/s]'); ylabel('Z position [m]');
+
+      
+      % Definition of the constraints and objective 
+      %(no condition on the initial state)
+      con = [con, x(:,2) == A*x(:,1) + B*u(:,1)];
+      con = [con, M*u(:,1) <= m];
+      obj = obj + u(:,1)'*R*u(:,1) ;
+      for i = 2:(N-1)
+          con = [con, x(:,i+1) == A*x(:,i) + B*u(:,i)];
+          con = [con, M*u(:,i) <= m];
+          obj = obj + x(:,i)'*Q*x(:,i) + u(:,i)'*R*u(:,i);
+      end
+      con = [con, x(:,N) == A*x(:,N-1) + B*u(:,N-1)];
+      con = [con, Ff*x(:,N) <= ff]; % terminal constraint 
+      obj = x(:,N)'*Qf*x(:,N); % terminal cost
 
       
       

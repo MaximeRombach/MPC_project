@@ -1,4 +1,4 @@
-classdef MPC_Control_x < MPC_Control
+classdef MPC_Control_yaw < MPC_Control
   
   methods
     % Design a YALMIP optimizer object that takes a steady-state state
@@ -20,7 +20,7 @@ classdef MPC_Control_x < MPC_Control
       us = sdpvar(m, 1);
       
       % SET THE HORIZON HERE
-      N = 15;
+      N = 20;
       
       % Predicted state and input trajectories
       x = sdpvar(n, N);
@@ -36,69 +36,40 @@ classdef MPC_Control_x < MPC_Control
       % WRITE THE CONSTRAINTS AND OBJECTIVE HERE
       con = [];
       obj = 0;
-      %extract system matrics
-      A=mpc.A;
-      B=mpc.B;
-      Q=diag([1, 1, 1 , 1]);%eye(n);
-      R=9;
-      Cu=[1;-1];
-      cu=[0.3;0.3];
-      Fx=[0,1,0,0;0,-1,0,0];
-      fx=[0.035;0.035];
-      %compute LQR controller
-      [K,Qf,~]=dlqr(A,B,Q,R);
-      K=-K;
-      %compute maximal invariant set
-      Xf=polytope([Fx;Cu*K],[fx;cu]);
-      Upd=A+B*K;
-      while 1
-          prevXf=Xf;
-          [W,V]=double(Xf);
-          pXf=polytope(W*Upd,V);
-          Xf=intersect(Xf,pXf);
-          if prevXf==Xf
-              break
-          end
+      
+      A = mpc.A; B = mpc.B;
+      
+      Q = diag([1,1]);%to be tuned
+      R = 20;%to be tuned
+      
+      % State Constraints
+      % x in X = { x | Fx <= f } No constraints on the state
+      
+      % Input Constraints
+      % u in U = { u | Mu <= m }
+      M = [1;-1]; m = [0.2;0.2];
+      
+      % Definition of the constraints and objective 
+      %(no condition on the initial state)
+      con = [con, x(:,2) == A*x(:,1) + B*u(:,1)];
+      con = [con, M*u(:,1) <= m];
+      obj = obj + (u(:,1)-us)'*R*(u(:,1)-us) ;
+      for i = 2:(N-1)
+          con = [con, x(:,i+1) == A*x(:,i) + B*u(:,i)];
+          con = [con, M*u(:,i) <= m];
+          obj = obj + (x(:,i)-xs)'*Q*(x(:,i)-xs);
+          obj = obj + (u(:,i)-us)'*R*(u(:,i)-us);
       end
-      [FW,FV]=double(Xf);
-      con=[con,x(:,2)==A*x(:,1)+B*u(:,1)];
-      con=[con,Cu*u(:,1)<=cu];
-      obj=u(:,1)'*R*u(:,1);
-      for i=2:1:N-1
-          con=[con, x(:,i+1)==A*x(:,i)+B*u(:,i)];
-          con=[con,Fx*x(:,i)<=fx];
-          con=[con,Cu*u(:,i)<=cu];
-          obj=obj+(x(:,i))'*Q*(x(:,i))+(u(:,i)')*R*(u(:,i));
-      end
-      con=[con,FW*x(:,N)<=FV];
-      obj=obj+(x(:,N))'*Qf*(x(:,N));
+      con = [con, x(:,N) == A*x(:,N-1) + B*u(:,N-1)];
+      obj = obj + (x(:,N)-xs)'*Q*(x(:,N)-xs);
+      
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       
       
       ctrl_opt = optimizer(con, obj, sdpsettings('solver','gurobi'), ...
         {x(:,1), xs, us}, u(:,1));
-         %plot projected maximal invariant sets of each state
-        figure;
-        subplot(1,3,1);
-        Xf.projection(1:2).plot();
-        xlabel('pitch velocity [rad/s]');
-        ylabel('pitch angle [rad]');
-        grid on;
-        subplot(1,3,2);
-        Xf.projection(2:3).plot();
-        xlabel('pitch angle [rad]');
-        ylabel('x velocity');
-        grid on;
-        subplot(1,3,3);
-        Xf.projection(3:4).plot();
-        xlabel('x velocity [m/s]');
-        ylabel('x position [m]');
-        sgtitle('Terminal set for the x system');
     end
-    
-   
-
     
     
     % Design a YALMIP optimizer object that takes a position reference
@@ -121,17 +92,30 @@ classdef MPC_Control_x < MPC_Control
       ref = sdpvar;            
             
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 
+      % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE       
       % You can use the matrices mpc.A, mpc.B, mpc.C and mpc.D
       con = [];
       obj = 0;
       
+      A = mpc.A; B = mpc.B; C = mpc.C;
+      
+      % Input Constraints
+      % u in U = { u | Mu <= m }
+      M = [1;-1]; m = [0.2;0.2];
+      
+      con = [con, A*xs + B*us == xs];% steady state
+      con = [con, M*us <= m];% input constraints
+      
+      obj = obj + (C*xs - ref)'*(C*xs - ref) + us'*us;
+
       
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
       
+      
       % Compute the steady-state target
       target_opt = optimizer(con, obj, sdpsettings('solver', 'gurobi'), ref, {xs, us});
+      
     end
   end
 end

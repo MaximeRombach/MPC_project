@@ -20,7 +20,7 @@ classdef MPC_Control_x < MPC_Control
       us = sdpvar(m, 1);
       
       % SET THE HORIZON HERE
-      N = ...
+      N = 10;% to be tuned
       
       % Predicted state and input trajectories
       x = sdpvar(n, N);
@@ -36,7 +36,38 @@ classdef MPC_Control_x < MPC_Control
       % WRITE THE CONSTRAINTS AND OBJECTIVE HERE
       con = [];
       obj = 0;
-
+      
+      A = mpc.A; B = mpc.B;
+      
+      Q = diag([1,1,1,1]);%to be tuned 2*eye(n)
+      R = 8;%to be tuned when using 10 the terminal set projected on 1:2 disappears!!!
+      
+      % State Constraints
+      % x in X = { x | Fx <= f }
+      F = [0,1,0,0; 0,-1,0,0]; f = 0.035*[1;1];
+      
+      % Input Constraints
+      % u in U = { u | Mu <= m }
+      M = [1;-1]; m = 0.3*[1;1];
+      
+      % Compute the unconstrained LQR controller
+      [K,Qf,~] = dlqr(A,B,Q,R);
+      K=-K; % Matlab inverts the K matrix
+      
+      % Definition of the constraints and objective 
+      %(no condition on the initial state)
+      con = [con, x(:,2) == A*x(:,1) + B*u(:,1)];
+      con = [con, M*u(:,1) <= m];
+      obj = obj + (u(:,1)- us)'*R*(u(:,1)- us);
+      for i = 2:(N-1)
+          con = [con, x(:,i+1) == A*x(:,i) + B*u(:,i)];
+          con = [con, F*x(:,i) <= f];
+          con = [con, M*u(:,i) <= m];
+          obj = obj + (x(:,i) - xs)'*Q*(x(:,i) - xs);
+          obj = obj + (u(:,i)- us)'*R*(u(:,i) - us);
+      end
+      con = [con, x(:,N) == A*x(:,N-1) + B*u(:,N-1)];
+      obj = obj + (x(:,N) - xs)'*Q*(x(:,N) - xs);
       
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -72,6 +103,21 @@ classdef MPC_Control_x < MPC_Control
       con = [];
       obj = 0;
       
+      A = mpc.A; B = mpc.B; C = mpc.C;
+      
+      % State Constraints
+      % x in X = { x | Fx <= f }
+      F = [0,1,0,0; 0,-1,0,0]; f = 0.035*[1;1];
+      
+      % Input Constraints
+      % u in U = { u | Mu <= m }
+      M = [1;-1]; m = 0.3*[1;1];
+      
+      con = [con, A*xs + B*us == xs];% steady state
+      con = [con, F*xs <= f];% state constraints
+      con = [con, M*us <= m];% input constraints
+      
+      obj = obj + (C*xs - ref)'*(C*xs - ref) + us'*us;
       
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

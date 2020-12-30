@@ -20,7 +20,7 @@ classdef MPC_Control_y < MPC_Control
       us = sdpvar(m, 1);
       
       % SET THE HORIZON HERE
-      N = 12;
+      N = 15;
       
       % Predicted state and input trajectories
       x = sdpvar(n, N);
@@ -38,8 +38,8 @@ classdef MPC_Control_y < MPC_Control
       obj = 0;
       A=mpc.A;
       B=mpc.B;
-      Q=2*eye(n);
-      R=5;
+      Q=eye(n);
+      R=9;
       Cu=[1;-1];
       cu=[0.3;0.3];
       Fx=[0,1,0,0;0,-1,0,0];
@@ -79,21 +79,21 @@ classdef MPC_Control_y < MPC_Control
         {x(:,1), xs, us}, u(:,1));
          %plot projected maximal incariant sets of each state
         figure;
-        subplot(2,2,1);
+        subplot(1,3,1);
         Xf.projection(1:2).plot();
-        xlabel('velocity of roll');
-        ylabel('roll');
+        xlabel('roll velocity [rad/s]');
+        ylabel('roll angle [rad]');
         grid on;
-        subplot(2,2,2);
+        subplot(1,3,2);
         Xf.projection(2:3).plot();
-        xlabel('roll');
-        ylabel('velocity of y');
+        xlabel('roll angle [rad/s]');
+        ylabel('y velocity [m/s]');
         grid on;
-        subplot(2,2,3);
+        subplot(1,3,3);
         Xf.projection(3:4).plot();
-        xlabel('velocity of y');
-        ylabel('y');
-        sgtitle('Terminal maximal invariant set for sys_y');
+        xlabel('y velocity [m/s]');
+        ylabel('y position [m]');
+        sgtitle('Terminal set for the y system');
       
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

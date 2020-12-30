@@ -20,7 +20,7 @@ classdef MPC_Control_yaw < MPC_Control
       us = sdpvar(m, 1);
       
       % SET THE HORIZON HERE
-      N = 12;
+      N = 15;
       
       % Predicted state and input trajectories
       x = sdpvar(n, N);
@@ -38,8 +38,8 @@ classdef MPC_Control_yaw < MPC_Control
       obj = 0;
       A=mpc.A;
       B=mpc.B;
-      Q=2*eye(n);
-      R=5;
+      Q=eye(n);
+      R=10;
       Cu=[1;-1];
       cu=[0.2;0.2];
       %compute LQR controller
@@ -76,12 +76,11 @@ classdef MPC_Control_yaw < MPC_Control
         {x(:,1), xs, us}, u(:,1));
          %plot projected maximal incariant sets of each state
         figure;
-        subplot(2,2,1);
-        Xf.projection(1:2).plot();
-        xlabel('velocity of yaw');
-        ylabel('yaw');
+        Xf.plot();
+        xlabel('yaw velocity [rad/s]');
+        ylabel('yaw angle [rad]');
         grid on;
-        sgtitle('Terminal maximal invariant set for sys_yaw');
+        sgtitle('Terminal set for the yaw system');
       
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
