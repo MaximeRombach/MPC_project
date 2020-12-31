@@ -34,7 +34,7 @@ classdef MPC_Control_z < MPC_Control
       d_est = sdpvar(1);
 
       % SET THE HORIZON HERE
-      N = 12;
+      N = 15;
       
       % Predicted state and input trajectories
       x = sdpvar(n, N);
@@ -52,8 +52,8 @@ classdef MPC_Control_z < MPC_Control
       obj = 0;
       A=mpc.A;
       B=mpc.B;
-      Q=2*eye(n);
-      R=5;
+      Q=eye(n);
+      R=100;
       Cu=[1;-1];
       cu=[0.3;0.2];
       ccu=cu-us;

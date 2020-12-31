@@ -40,7 +40,7 @@ classdef MPC_Control_x < MPC_Control
       A = mpc.A; B = mpc.B;
       
       Q = diag([1,1,1,1]);%to be tuned 2*eye(n)
-      R = 8;%to be tuned when using 10 the terminal set projected on 1:2 disappears!!!
+      R = 9;%to be tuned when using 10 the terminal set projected on 1:2 disappears!!!
       
       % State Constraints
       % x in X = { x | Fx <= f }

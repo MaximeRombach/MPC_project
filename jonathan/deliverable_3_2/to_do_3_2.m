@@ -24,10 +24,11 @@ sim_length = length(time); % number of simulation steps
 x_hist = zeros(4,sim_length);
 ux_hist = zeros(1,sim_length-1);
 
-x_hist(:,1) = [0;0;0;2];% x0
-x_position_reference = 6;
+x_hist(:,1) = [0;0;0;0];% x0
+x_position_reference = -2;
 
 for i = 1:sim_length
+    fprintf('iteration %d/%d\n', i, sim_length);
     % Get control inputs with
     ux = mpc_x.get_u(x_hist(:,i), x_position_reference);
     ux_hist(:,i)= ux;
@@ -80,10 +81,12 @@ x_hist(:,1) = [0;0;0;0];% y0 (initial state)
 y_position_reference = -3;
 
 for i = 1:sim_length
+    fprintf('iteration %d/%d\n', i, sim_length);
     % Get control inputs with
     ux = mpc_y.get_u(x_hist(:,i), y_position_reference);
     ux_hist(:,i)= ux;
     x_hist(:,i+1) = mpc_y.A*x_hist(:,i) + mpc_y.B*ux_hist(:,i);
+    
 end
 
 %% Plots for sys_y controller
@@ -132,6 +135,7 @@ x_hist(:,1) = [0;0];% z0 (initial state)
 z_position_reference = -15;
 
 for i = 1:sim_length
+    fprintf('iteration %d/%d\n', i, sim_length);
     % Get control inputs with
     ux = mpc_z.get_u(x_hist(:,i), z_position_reference);
     ux_hist(:,i)= ux;
@@ -174,6 +178,7 @@ x_hist(:,1) = [0;-45*pi/180];% yaw0 (initial state)
 yaw_position_reference = 180*pi/180;
 
 for i = 1:sim_length
+    fprintf('iteration %d/%d\n', i, sim_length);
     % Get control inputs with
     ux = mpc_yaw.get_u(x_hist(:,i), yaw_position_reference);
     ux_hist(:,i)= ux;
