@@ -63,14 +63,19 @@ classdef MPC_Control_z < MPC_Control
       %compute maximal invariant set
       Xf=polytope(Cu*K,cu);
       Upd=A+B*K;
+      fprintf("Computing max invariant set for Z\n")
+      k = 1;
       while 1
           prevXf=Xf;
           [W,V]=double(Xf);
           pXf=polytope(W*Upd,V);
           Xf=intersect(Xf,pXf);
           if prevXf==Xf
+              fprintf("Finished at iteration n°%d\n", k)
               break
           end
+          fprintf("Iteration n°%d \n", k)
+          k = k + 1;
       end
       [FW,FV]=double(Xf);
       con=[con,x(:,2)==A*x(:,1)+B*u(:,1)];
@@ -92,9 +97,17 @@ classdef MPC_Control_z < MPC_Control
     
         %plot projected maximal invariant sets of each state
         figure;
+%<<<<<<< HEAD
         Xf.plot();
         xlabel('z velocity [m/s]');ylabel('z position [m]');grid on;
         sgtitle('Terminal set for the z system');
+%=======
+        Xf.projection(1:2).plot();
+        xlabel('velocity of z');
+        ylabel('z');
+        grid on;
+        sgtitle('Terminal maximal invariant set for sys z');
+%>>>>>>> 8d2ee10736851a31a442d0056596de41cf45a55a
       
       
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 

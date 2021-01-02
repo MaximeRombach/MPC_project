@@ -50,14 +50,19 @@ classdef MPC_Control_y < MPC_Control
       %compute maximal invariant set
       Xf=polytope([Fx;Cu*K],[fx;cu]);
       Upd=A+B*K;
+      fprintf("Computing max invariant set for Y\n")
+      k = 1;
       while 1
           prevXf=Xf;
           [W,V]=double(Xf);
           pXf=polytope(W*Upd,V);
           Xf=intersect(Xf,pXf);
           if prevXf==Xf
+              fprintf("Finished at iteration n°%d\n", k)
               break
           end
+          fprintf("Iteration n°%d \n", k)
+          k = k + 1;
       end
       [FW,FV]=double(Xf);
       con=[con,x(:,2)==A*x(:,1)+B*u(:,1)];
@@ -91,9 +96,15 @@ classdef MPC_Control_y < MPC_Control
         grid on;
         subplot(1,3,3);
         Xf.projection(3:4).plot();
+%<<<<<<< HEAD
         xlabel('y velocity [m/s]');
         ylabel('y position [m]');
         sgtitle('Terminal set for the y system');
+%=======
+        xlabel('velocity of y');
+        ylabel('y');
+        sgtitle('Terminal maximal invariant set for sys y');
+%>>>>>>> 8d2ee10736851a31a442d0056596de41cf45a55a
       
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

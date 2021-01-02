@@ -38,8 +38,8 @@ classdef MPC_Control_yaw < MPC_Control
       obj = 0;
       A=mpc.A;
       B=mpc.B;
-      Q=2*eye(n);
-      R=5;
+      Q=eye(n);
+      R=100;
       Cu=[1;-1];
       cu=[0.2;0.2];
       %compute LQR controller

@@ -19,8 +19,8 @@ Us = opti.variable(4, 1);
 %% perform control action
 
 Q_xs_ref = 100*eye(4);
-Q = 2*eye(12);
-R = 3*eye(4);
+Q = 1*eye(12);
+R = 1*eye(4);
 
 % initial conditions
 opti.subject_to(X(:,1)==X0);

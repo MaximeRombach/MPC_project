@@ -48,14 +48,19 @@ classdef MPC_Control_yaw < MPC_Control
       %compute maximal invariant set
       Xf=polytope(Cu*K,cu);
       Upd=A+B*K;
+      fprintf("Computing max invariant set for Yaw\n")
+      k = 1;
       while 1
           prevXf=Xf;
           [W,V]=double(Xf);
           pXf=polytope(W*Upd,V);
           Xf=intersect(Xf,pXf);
           if prevXf==Xf
+              fprintf("Finished at iteration n°%d\n", k)
               break
           end
+          fprintf("Iteration n°%d \n", k)
+          k = k + 1;
       end
       [FW,FV]=double(Xf);
       con=[con,x(:,2)==A*x(:,1)+B*u(:,1)];
@@ -76,11 +81,19 @@ classdef MPC_Control_yaw < MPC_Control
         {x(:,1), xs, us}, u(:,1));
          %plot projected maximal incariant sets of each state
         figure;
+%<<<<<<< HEAD
         Xf.plot();
         xlabel('yaw velocity [rad/s]');
         ylabel('yaw angle [rad]');
         grid on;
         sgtitle('Terminal set for the yaw system');
+%=======
+        Xf.projection(1:2).plot();
+        xlabel('velocity of yaw');
+        ylabel('yaw');
+        grid on;
+        sgtitle('Terminal maximal invariant set for sys yaw');
+%>>>>>>> 8d2ee10736851a31a442d0056596de41cf45a55a
       
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

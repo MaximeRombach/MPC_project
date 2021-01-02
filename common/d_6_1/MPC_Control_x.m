@@ -39,8 +39,8 @@ classdef MPC_Control_x < MPC_Control
       %extract system matrics
       A=mpc.A;
       B=mpc.B;
-      Q=2*eye(n);
-      R=5;
+      Q=eye(n);
+      R=9;
       Cu=[1;-1];
       cu=[0.3;0.3];
       Fx=[0,1,0,0;0,-1,0,0];
