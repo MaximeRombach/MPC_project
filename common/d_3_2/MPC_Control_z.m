@@ -89,14 +89,6 @@ classdef MPC_Control_z < MPC_Control
       
       ctrl_opt = optimizer(con, obj, sdpsettings('solver','gurobi'), ...
         {x(:,1)}, u(:,1)+us);
-         %plot projected maximal invariant sets of each state
-%         figure;
-%         subplot(2,2,1);
-%         Xf.projection(1:2).plot();
-%         xlabel('velocity of z');
-%         ylabel('z');
-%         grid on;
-%         sgtitle('Terminal maximal invariant set for transformed sys_z');
       
       
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 

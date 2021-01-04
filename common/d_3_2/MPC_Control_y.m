@@ -79,23 +79,7 @@ classdef MPC_Control_y < MPC_Control
       
       ctrl_opt = optimizer(con, obj, sdpsettings('solver','gurobi'), ...
         {x(:,1)}, u(:,1)+us);
-         %plot projected maximal incariant sets of each state
-%         figure;
-%         subplot(2,2,1);
-%         Xf.projection(1:2).plot();
-%         xlabel('velocity of roll');
-%         ylabel('roll');
-%         grid on;
-%         subplot(2,2,2);
-%         Xf.projection(2:3).plot();
-%         xlabel('roll');
-%         ylabel('velocity of y');
-%         grid on;
-%         subplot(2,2,3);
-%         Xf.projection(3:4).plot();
-%         xlabel('velocity of y');
-%         ylabel('y');
-%         sgtitle('Terminal maximal invariant set for transformed sys_y');
+
       
       % YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE YOUR CODE HERE 
       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
