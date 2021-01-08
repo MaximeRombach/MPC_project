@@ -29,10 +29,10 @@ opti.subject_to(X(:,1)==X0);
 % cost to minimize disparity between reference ouput and desired ouput
 cost = (Xs([10,11,12,6])-REF)'*Q_xs_ref*(Xs([10,11,12,6])-REF);
 
-for i = 2:N
-    cost = cost + (X(:,i)-Xs)'*Q*(X(:,i)-Xs)+(U(:,i)-Us)'*R*(U(:,i)-Us);
+for i = 1:N
+    cost = cost + (X(:,i+1)-Xs)'*Q*(X(:,i+1)-Xs)+(U(:,i)-Us)'*R*(U(:,i)-Us);
 end
-cost = cost + (X(:,N+1)-Xs)'*Q*(X(:,N+1)-Xs);
+%cost = cost + (X(:,N+1)-Xs)'*Q*(X(:,N+1)-Xs);
 
 % boundary conditions
 u_min = quad.thrustLimits(1,1);
